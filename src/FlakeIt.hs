@@ -1,55 +1,43 @@
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 
 module FlakeIt where
 
-import Data.Aeson qualified as JSON
-import Data.Aeson.Types (FromJSON, Value)
-import Data.Binary
 import Data.ByteString.Builder qualified as BSB
 import Data.ByteString.Lazy qualified as BS
-import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
-import System.Process.Typed (proc, readProcessStdout_)
+import FlakeIt.DB qualified as DB
+import FlakeIt.Nix qualified as Nix
+import FlakeIt.Options
+import FlakeIt.Types
+import Options.Applicative (execParser)
 
-type TemplateName = Text
+listTemplates :: TemplateGroup -> [Text]
+listTemplates t = map (\name -> t.url <> "#" <> name) t.names
 
-data TemplateInfo = TemplateInfo
-  { description :: Text
-  }
-  deriving (Generic, FromJSON, Show)
+prettyTemplates :: [TemplateGroup] -> Text
+prettyTemplates = unlines . concatMap listTemplates
 
-data Flake = Flake
-  { templates :: Maybe (Map TemplateName TemplateInfo)
-  }
-  deriving (Generic, FromJSON, Show)
-
-type TemplateUrl = Text
-
-data Templates = Templates
-  { url :: !TemplateUrl
-  , names :: ![TemplateName]
-  }
-  deriving (Generic, Show)
-
-instance Binary Templates
-
-getTemplates :: TemplateUrl -> IO (Maybe Templates)
-getTemplates url = do
-  out <- readProcessStdout_ $ proc "nix" ["flake", "show", "--json", toString url]
-  pure $
-    fmap ((\names -> Templates{url, names}) . fmap fst . Map.toList) $
-      JSON.decode @Flake out >>= templates
+runCommand :: Command -> IO ()
+runCommand (Add opts) = do
+  -- TODO: Find duplicates
+  maybeTemplates <- Nix.getTemplateGroup opts.path
+  case maybeTemplates of
+    Just ts -> DB.add ts
+    Nothing -> do
+      error "Could not find templates..."
+runCommand (List opts) = do
+  db <- DB.getAll
+  putText $ prettyTemplates db
+runCommand (Remove opts) = do
+  DB.remove opts.path
+runCommand (Update opts) = do
+  maybeTemplates <- Nix.getTemplateGroup opts.path
+  case maybeTemplates of
+    Just ts -> DB.replace opts.path ts
+    Nothing -> do
+      error "Could not find templates..."
 
 main :: IO ()
 main = do
-  let url = "github:NixOS/templates"
-  let url2 = "github:nix-community/templates"
-  Just t1 <- getTemplates url
-  Just t2 <- getTemplates url2
-  let z = encode [t1, t2]
-  writeFileLBS "binary" z
-
-  f <- decodeFile @[Templates] "binary"
-  print f
-
-  pass
+  command <- execParser flakeitP
+  runCommand command

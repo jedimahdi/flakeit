@@ -22,12 +22,21 @@ common common-options
     relude
 
   default-language:   GHC2021
-  default-extensions: OverloadedStrings
+  default-extensions:
+    DuplicateRecordFields
+    OverloadedRecordDot
+    OverloadedStrings
 
 library
   import:          common-options 
   hs-source-dirs:  src
-  exposed-modules: FlakeIt
+  exposed-modules:
+    FlakeIt
+    FlakeIt.Options
+    FlakeIt.Types
+    FlakeIt.DB
+    FlakeIt.Nix
+
   build-depends:
     , aeson
     , binary
@@ -35,7 +44,7 @@ library
     , containers
     , directory
     , filepath
-    , process
+    , optparse-applicative
     , text
     , typed-process
 
