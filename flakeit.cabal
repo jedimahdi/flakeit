@@ -32,10 +32,10 @@ library
   hs-source-dirs:  src
   exposed-modules:
     FlakeIt
-    FlakeIt.Options
-    FlakeIt.Types
     FlakeIt.DB
     FlakeIt.Nix
+    FlakeIt.Options
+    FlakeIt.Types
 
   build-depends:
     , aeson

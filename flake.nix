@@ -1,33 +1,36 @@
 {
-  description = "Flake Template";
+  description = "Flake It";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    systems.url = "github:nix-systems/default";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    haskell-flake.url = "github:srid/haskell-flake";
+    utils.url = "github:numtide/flake-utils";
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "nixpkgs";
+        flake-utils.follows = "utils";
+      };
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        inputs.haskell-flake.flakeModule
-        inputs.treefmt-nix.flakeModule
-      ];
-      systems = import inputs.systems;
-      perSystem = { self', config, pkgs, ... }: {
-        haskellProjects.default = {
-          devShell = {
-            hlsCheck.enable = false;
-          };
-          autoWire = [ "packages" "apps" "checks" ];
-        };
-
-        treefmt = {
+  outputs = { nixpkgs, utils, treefmt-nix, pre-commit-hooks, ... }:
+    utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+        haskellPackages = pkgs.haskellPackages.extend (final: prev: {
+          flakeit = prev.callCabal2nix "flakeit" ./. { };
+        });
+        flakeit = pkgs.lib.pipe haskellPackages.flakeit [
+          pkgs.haskell.lib.justStaticExecutables
+          pkgs.haskell.lib.dontCheck
+          (haskellPackages.generateOptparseApplicativeCompletions [ "flakeit" ])
+        ];
+        treefmtEval = treefmt-nix.lib.evalModule pkgs {
           projectRootFile = "flake.nix";
           programs = {
             nixpkgs-fmt.enable = true;
@@ -36,19 +39,27 @@
             hlint.enable = true;
           };
         };
-
-        devShells.default = pkgs.mkShell {
-          name = "flakeit";
-          inputsFrom = [
-            config.treefmt.build.devShell
-            config.haskellProjects.default.outputs.devShell
-          ];
-          nativeBuildInputs = with pkgs; [
-            just
-          ];
+        preCommit = pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            treefmt.enable = true;
+          };
+          settings.treefmt.package = treefmtEval.config.build.wrapper;
         };
-        packages.default = self'.packages.flakeit;
-        apps.default = self'.apps.flakeit;
-      };
-    };
+      in
+      {
+        packages = {
+          default = flakeit;
+          inherit flakeit;
+          flakeit-sdist = pkgs.haskell.lib.sdistTarball flakeit;
+        };
+        devShells.default =
+          haskellPackages.shellFor {
+            packages = p: [ p.flakeit ];
+            inherit (preCommit) shellHook;
+            withHoogle = true;
+            nativeBuildInputs = [ treefmtEval.config.build.wrapper pkgs.ghcid ]
+              ++ (pkgs.lib.attrValues treefmtEval.config.build.programs);
+          };
+      });
 }
