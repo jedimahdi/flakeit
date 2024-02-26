@@ -2,11 +2,11 @@ module FlakeIt.DB (
   add,
   getAll,
   remove,
-  replace,
   clear,
 ) where
 
 import Data.Binary
+import Data.List qualified as List
 import FlakeIt.Nix qualified as Nix
 import FlakeIt.Types
 import System.Directory (
@@ -25,11 +25,11 @@ clear = do
   whenM (doesFileExist dbPath) $ removeFile dbPath
 
 add :: TemplateGroup -> IO ()
-add templates = do
+add tg = do
   dbPath <- getDBPath
   dbExist <- doesFileExist dbPath
   prevDb <- if dbExist then decodeFile @[TemplateGroup] dbPath else pure []
-  let newDb = templates : prevDb
+  let newDb = tg : filter (\t -> t.url /= tg.url) prevDb
   encodeFile dbPath newDb
 
 remove :: TemplateUrl -> IO ()
@@ -37,13 +37,8 @@ remove url = do
   dbPath <- getDBPath
   dbExist <- doesFileExist dbPath
   prevDb <- if dbExist then decodeFile @[TemplateGroup] dbPath else pure []
-  let newDb = filter (\t -> t.url == url) prevDb
+  let newDb = filter (\t -> t.url /= url) prevDb
   encodeFile dbPath newDb
-
-replace :: TemplateUrl -> TemplateGroup -> IO ()
-replace url tg = do
-  remove url
-  add tg
 
 getAll :: IO [TemplateGroup]
 getAll = do

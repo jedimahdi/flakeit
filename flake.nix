@@ -36,7 +36,6 @@
             nixpkgs-fmt.enable = true;
             fourmolu.enable = true;
             cabal-fmt.enable = true;
-            hlint.enable = true;
           };
         };
         preCommit = pre-commit-hooks.lib.${system}.run {

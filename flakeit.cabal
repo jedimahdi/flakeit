@@ -24,6 +24,7 @@ common common-options
   default-language:   GHC2021
   default-extensions:
     DuplicateRecordFields
+    LambdaCase
     OverloadedRecordDot
     OverloadedStrings
 
@@ -37,6 +38,8 @@ library
     FlakeIt.Options
     FlakeIt.Types
 
+  autogen-modules: Paths_flakeit
+  other-modules:   Paths_flakeit
   build-depends:
     , aeson
     , binary
@@ -53,3 +56,4 @@ executable flakeit
   hs-source-dirs: app
   main-is:        Main.hs
   build-depends:  flakeit
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
