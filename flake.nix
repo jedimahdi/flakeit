@@ -28,6 +28,7 @@
         flakeit = pkgs.lib.pipe haskellPackages.flakeit [
           pkgs.haskell.lib.justStaticExecutables
           pkgs.haskell.lib.dontCheck
+          pkgs.haskell.lib.dontHaddock
           (haskellPackages.generateOptparseApplicativeCompletions [ "flakeit" ])
         ];
         treefmtEval = treefmt-nix.lib.evalModule pkgs {
