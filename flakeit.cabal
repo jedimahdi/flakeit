@@ -33,9 +33,11 @@ library
   hs-source-dirs:  src
   exposed-modules:
     FlakeIt
+    FlakeIt.Cli
+    FlakeIt.Cli.Parser
     FlakeIt.DB
     FlakeIt.Nix
-    FlakeIt.Options
+    FlakeIt.Template
     FlakeIt.Types
 
   autogen-modules: Paths_flakeit

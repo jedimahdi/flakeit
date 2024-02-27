@@ -1,63 +1,13 @@
-{-# LANGUAGE LambdaCase #-}
-
-module FlakeIt.Options where
+module FlakeIt.Cli.Parser where
 
 import Data.List qualified as List
 import Data.Text qualified as Text
 import Data.Version (Version, showVersion)
 import FlakeIt.DB qualified as DB
 import FlakeIt.Nix qualified as Nix
+import FlakeIt.Template
 import FlakeIt.Types
 import Options.Applicative
-import Paths_flakeit qualified as Meta (version)
-
-flakeit :: Version -> (Command -> IO ()) -> IO ()
-flakeit version performCommand = execParser (cliParser version) >>= performCommand
-
-flakeitCli :: IO ()
-flakeitCli = flakeit Meta.version runCliCommand
-
-listTemplates :: TemplateGroup -> [Text]
-listTemplates t = map (\name -> t.url <> "#" <> name) t.names
-
-prettyTemplates :: [TemplateGroup] -> Text
-prettyTemplates = unlines . concatMap listTemplates
-
-addTemplateGroup :: TemplateUrl -> IO ()
-addTemplateGroup url = do
-  maybeTemplates <- Nix.getTemplateGroup url
-  case maybeTemplates of
-    Just ts -> DB.add ts
-    Nothing -> error "Could not find templates..."
-
-runList :: ListOptions -> IO ()
-runList opts = do
-  db <- DB.getAll
-  putText $ prettyTemplates db
-
-runAdd :: AddOptions -> IO ()
-runAdd opts = addTemplateGroup opts.path
-
-runUpdate :: UpdateOptions -> IO ()
-runUpdate opts = addTemplateGroup opts.path
-
-runRemove :: RemoveOptions -> IO ()
-runRemove opts = DB.remove opts.path
-
-runNew :: NewOptions -> IO ()
-runNew opts = Nix.newTemplate opts.name opts.template
-
-runInit :: InitOptions -> IO ()
-runInit opts = Nix.initTemplate opts.template
-
-runCliCommand :: Command -> IO ()
-runCliCommand = \case
-  List opts -> runList opts
-  Add opts -> runAdd opts
-  Update opts -> runUpdate opts
-  Remove opts -> runRemove opts
-  New opts -> runNew opts
-  Init opts -> runInit opts
 
 cliParser :: Version -> ParserInfo Command
 cliParser version = info (helper <*> versionP version <*> commandP) $ fullDesc <> progDesc "Flake It Program"
@@ -109,20 +59,22 @@ newOpts =
     <*> argument str (completer pathCompleter <> metavar "NAME")
 
 newCommand :: Parser Command
-newCommand = New <$> newOpts
+newCommand =
+  New
+    <$> ( NewOptions
+            <$> strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
+            <*> argument str (completer pathCompleter <> metavar "NAME")
+        )
 
 data InitOptions = InitOptions
   { template :: !Text
   }
   deriving (Show)
 
-initOpts :: Parser InitOptions
-initOpts =
-  InitOptions
-    <$> strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
-
 initCommand :: Parser Command
-initCommand = Init <$> initOpts
+initCommand =
+  Init . InitOptions
+    <$> strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
 
 data UpdateOptions = UpdateOptions
   { path :: Text
@@ -135,39 +87,34 @@ updateOpts =
     <$> argument str (completer pathCompleter <> metavar "PATH")
 
 updateCommand :: Parser Command
-updateCommand = Update <$> updateOpts
+updateCommand =
+  Update . UpdateOptions
+    <$> argument str (completer pathCompleter <> metavar "PATH")
 
 data RemoveOptions = RemoveOptions
   { path :: Text
   }
   deriving (Show)
 
-removeOpts :: Parser RemoveOptions
-removeOpts = RemoveOptions <$> argument str (metavar "PATH")
-
 removeCommand :: Parser Command
-removeCommand = Remove <$> removeOpts
+removeCommand =
+  Remove . RemoveOptions
+    <$> argument str (completer pathCompleter <> metavar "PATH")
 
 data ListOptions = ListOptions
   {}
   deriving (Show)
 
-listOpts :: Parser ListOptions
-listOpts = pure ListOptions
-
 listCommand :: Parser Command
-listCommand = List <$> listOpts
+listCommand = pure (List ListOptions)
 
 data AddOptions = AddOptions
   { path :: Text
   }
   deriving (Show)
 
-addOpts :: Parser AddOptions
-addOpts = AddOptions <$> argument str (metavar "PATH")
-
 addCommand :: Parser Command
-addCommand = Add <$> addOpts
+addCommand = Add . AddOptions <$> argument str (metavar "PATH")
 
 commandP :: Parser Command
 commandP =
