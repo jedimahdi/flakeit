@@ -2,6 +2,7 @@ module FlakeIt.Cli where
 
 import Data.List qualified as List
 import Data.Text qualified as Text
+import Data.Text.IO qualified as TIO
 import Data.Version (Version, showVersion)
 import FlakeIt.Cli.Parser
 import FlakeIt.DB qualified as DB
@@ -27,7 +28,7 @@ addTemplateGroup url = do
 runList :: ListOptions -> IO ()
 runList opts = do
   db <- DB.getAll
-  putText $ prettyTemplates db
+  TIO.putStr $ prettyTemplates db
 
 runAdd :: AddOptions -> IO ()
 runAdd opts = addTemplateGroup opts.path

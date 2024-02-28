@@ -5,6 +5,7 @@ module FlakeIt.DB (
   clear,
 ) where
 
+import Control.Monad (when)
 import Data.Binary
 import Data.List qualified as List
 import FlakeIt.Nix qualified as Nix
@@ -17,12 +18,12 @@ import System.Directory (
   removeFile,
  )
 import System.FilePath ((</>))
-import Prelude hiding (getAll)
 
 clear :: IO ()
 clear = do
   dbPath <- getDBPath
-  whenM (doesFileExist dbPath) $ removeFile dbPath
+  doesExist <- doesFileExist dbPath
+  when doesExist $ removeFile dbPath
 
 add :: TemplateGroup -> IO ()
 add tg = do

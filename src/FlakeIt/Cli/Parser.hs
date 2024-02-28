@@ -1,6 +1,7 @@
 module FlakeIt.Cli.Parser where
 
 import Data.List qualified as List
+import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Version (Version, showVersion)
 import FlakeIt.DB qualified as DB
@@ -28,14 +29,14 @@ templateCompleter = mkCompleter comp
  where
   comp :: String -> IO [String]
   comp s = do
-    map toString . concatMap listTemplates <$> DB.getAll
+    map Text.unpack . concatMap listTemplates <$> DB.getAll
 
 pathCompleter :: Completer
 pathCompleter = mkCompleter comp
  where
   comp :: String -> IO [String]
   comp s =
-    filter (\t -> s `isPrefixOf` t) . map (toString . (\l -> l.url)) <$> DB.getAll
+    filter (\t -> s `List.isPrefixOf` t) . map (Text.unpack . (\l -> l.url)) <$> DB.getAll
 
 data Command
   = List !ListOptions

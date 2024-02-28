@@ -1,6 +1,7 @@
 module FlakeIt.Template where
 
 import Data.List qualified as List
+import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Version (Version, showVersion)
 import FlakeIt.DB qualified as DB
@@ -13,4 +14,4 @@ listTemplates :: TemplateGroup -> [Text]
 listTemplates t = map (\name -> t.url <> "#" <> name) t.names
 
 prettyTemplates :: [TemplateGroup] -> Text
-prettyTemplates = unlines . concatMap listTemplates
+prettyTemplates = Text.unlines . concatMap listTemplates

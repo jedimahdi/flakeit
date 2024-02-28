@@ -12,15 +12,7 @@ common common-options
     -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates
     -Wno-unused-local-binds -Wno-unused-imports -Wno-unused-matches
 
-  build-depends:
-    , base
-    , relude
-
-  mixins:
-    base hiding (Prelude),
-    relude (Relude as Prelude),
-    relude
-
+  build-depends:      base
   default-language:   GHC2021
   default-extensions:
     DuplicateRecordFields
