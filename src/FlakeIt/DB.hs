@@ -9,7 +9,7 @@ import Control.Monad (when)
 import Data.Binary
 import Data.List qualified as List
 import FlakeIt.Nix qualified as Nix
-import FlakeIt.Types
+import FlakeIt.Template
 import System.Directory (
   XdgDirectory (XdgData),
   createDirectoryIfMissing,
@@ -21,34 +21,39 @@ import System.FilePath ((</>))
 
 clear :: IO ()
 clear = do
-  dbPath <- getDBPath
+  dbPath <- defaultDBPath
   doesExist <- doesFileExist dbPath
   when doesExist $ removeFile dbPath
 
-add :: TemplateGroup -> IO ()
-add tg = do
-  dbPath <- getDBPath
-  dbExist <- doesFileExist dbPath
-  prevDb <- if dbExist then decodeFile @[TemplateGroup] dbPath else pure []
-  let newDb = tg : filter (\t -> t.url /= tg.url) prevDb
-  encodeFile dbPath newDb
+add :: Source -> IO ()
+add source = do
+  dbDirectory <- defaultDBDirectory
+  createDirectoryIfMissing True dbDirectory
+  dbPath <- defaultDBPath
+  prevDb <- readDB dbPath
+  let newDb = source : filter (\s -> s.url /= source.url) prevDb
+  writeDB dbPath newDb
 
-remove :: TemplateUrl -> IO ()
+remove :: SourceUrl -> IO ()
 remove url = do
-  dbPath <- getDBPath
-  dbExist <- doesFileExist dbPath
-  prevDb <- if dbExist then decodeFile @[TemplateGroup] dbPath else pure []
+  dbPath <- defaultDBPath
+  prevDb <- readDB dbPath
   let newDb = filter (\t -> t.url /= url) prevDb
-  encodeFile dbPath newDb
+  writeDB dbPath newDb
 
-getAll :: IO [TemplateGroup]
-getAll = do
-  dbPath <- getDBPath
+getAll :: IO [Source]
+getAll = defaultDBPath >>= readDB
+
+readDB :: FilePath -> IO [Source]
+readDB dbPath = do
   dbExist <- doesFileExist dbPath
-  if dbExist then decodeFile @[TemplateGroup] dbPath else pure []
+  if dbExist then decodeFile @[Source] dbPath else pure []
 
-getDBPath :: IO FilePath
-getDBPath = do
-  dataPath <- getXdgDirectory XdgData "flakeit"
-  createDirectoryIfMissing True dataPath
-  pure $ dataPath </> "db"
+writeDB :: FilePath -> [Source] -> IO ()
+writeDB = encodeFile
+
+defaultDBDirectory :: IO FilePath
+defaultDBDirectory = getXdgDirectory XdgData "flakeit"
+
+defaultDBPath :: IO FilePath
+defaultDBPath = fmap (</> "db") defaultDBDirectory

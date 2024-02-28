@@ -30,7 +30,6 @@ library
     FlakeIt.DB
     FlakeIt.Nix
     FlakeIt.Template
-    FlakeIt.Types
 
   autogen-modules: Paths_flakeit
   other-modules:   Paths_flakeit

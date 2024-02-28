@@ -58,7 +58,7 @@
             packages = p: [ p.flakeit ];
             inherit (preCommit) shellHook;
             withHoogle = true;
-            nativeBuildInputs = [ treefmtEval.config.build.wrapper pkgs.ghcid ]
+            nativeBuildInputs = [ treefmtEval.config.build.wrapper pkgs.ghcid pkgs.just ]
               ++ (pkgs.lib.attrValues treefmtEval.config.build.programs);
           };
       });

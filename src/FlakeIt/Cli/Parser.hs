@@ -1,106 +1,92 @@
 module FlakeIt.Cli.Parser where
 
 import Data.List qualified as List
-import Data.Text (Text)
-import Data.Text qualified as Text
 import Data.Version (Version, showVersion)
 import FlakeIt.DB qualified as DB
 import FlakeIt.Nix qualified as Nix
 import FlakeIt.Template
-import FlakeIt.Types
 import Options.Applicative
+
+data Command
+  = List !ListOptions
+  | Add !AddOptions
+  | Remove !RemoveOptions
+  | Init !InitOptions
+  | New !NewOptions
+  deriving (Show)
 
 cliParser :: Version -> ParserInfo Command
 cliParser version = info (helper <*> versionP version <*> commandP) $ fullDesc <> progDesc "Flake It Program"
 
-versionP :: Version -> Parser (a -> a)
-versionP version =
-  infoOption (flakeitVersion version) $
-    long "version"
-      <> short 'v'
-      <> help "Show flakeit's version"
-      <> hidden
-
-flakeitVersion :: Version -> String
-flakeitVersion version = "flakeit " <> "v" <> showVersion version
+commandP :: Parser Command
+commandP =
+  hsubparser $
+    mconcat
+      [ command "add" (info addCommand $ progDesc "Add tempalates with flake url")
+      , command "list" (info listCommand $ progDesc "List templates")
+      , command "remove" (info removeCommand $ progDesc "Remove templates with flake url")
+      , command "init" (info initCommand $ progDesc "Init flake template")
+      , command "new" (info newCommand $ progDesc "New flake template")
+      ]
 
 templateCompleter :: Completer
 templateCompleter = mkCompleter comp
  where
   comp :: String -> IO [String]
   comp s = do
-    map Text.unpack . concatMap listTemplates <$> DB.getAll
+    map templateToString . concatMap listTemplates <$> DB.getAll
 
-pathCompleter :: Completer
-pathCompleter = mkCompleter comp
+urlCompleter :: Completer
+urlCompleter = mkCompleter comp
  where
   comp :: String -> IO [String]
   comp s =
-    filter (\t -> s `List.isPrefixOf` t) . map (Text.unpack . (\l -> l.url)) <$> DB.getAll
+    filter (\t -> s `List.isPrefixOf` t) . map (urlToString . (\l -> l.url)) <$> DB.getAll
 
-data Command
-  = List !ListOptions
-  | Add !AddOptions
-  | Remove !RemoveOptions
-  | Update !UpdateOptions
-  | Init !InitOptions
-  | New !NewOptions
-  deriving (Show)
+versionP :: Version -> Parser (a -> a)
+versionP version =
+  infoOption flakeitVersion $
+    long "version"
+      <> short 'v'
+      <> help "Show flakeit's version"
+      <> hidden
+ where
+  flakeitVersion :: String
+  flakeitVersion = "flakeit " <> "v" <> showVersion version
+
+templateP :: Parser Template
+templateP = strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
+
+projectNameP :: Parser String
+projectNameP = argument str (metavar "NAME")
+
+urlP :: Parser SourceUrl
+urlP = argument str (completer urlCompleter <> metavar "PATH")
 
 data NewOptions = NewOptions
-  { template :: !Text
-  , name :: !Text
+  { template :: !Template
+  , projectName :: !String
   }
   deriving (Show)
 
-newOpts :: Parser NewOptions
-newOpts =
-  NewOptions
-    <$> strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
-    <*> argument str (completer pathCompleter <> metavar "NAME")
-
 newCommand :: Parser Command
-newCommand =
-  New
-    <$> ( NewOptions
-            <$> strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
-            <*> argument str (completer pathCompleter <> metavar "NAME")
-        )
+newCommand = New <$> (NewOptions <$> templateP <*> projectNameP)
 
 data InitOptions = InitOptions
-  { template :: !Text
+  { template :: !Template
   }
   deriving (Show)
 
 initCommand :: Parser Command
-initCommand =
-  Init . InitOptions
-    <$> strOption (long "template" <> short 't' <> help "Choose template to use" <> completer templateCompleter)
-
-data UpdateOptions = UpdateOptions
-  { path :: Text
-  }
-  deriving (Show)
-
-updateOpts :: Parser UpdateOptions
-updateOpts =
-  UpdateOptions
-    <$> argument str (completer pathCompleter <> metavar "PATH")
-
-updateCommand :: Parser Command
-updateCommand =
-  Update . UpdateOptions
-    <$> argument str (completer pathCompleter <> metavar "PATH")
+initCommand = Init . InitOptions <$> templateP
 
 data RemoveOptions = RemoveOptions
-  { path :: Text
+  { url :: SourceUrl
   }
   deriving (Show)
 
 removeCommand :: Parser Command
-removeCommand =
-  Remove . RemoveOptions
-    <$> argument str (completer pathCompleter <> metavar "PATH")
+removeCommand = Remove . RemoveOptions <$> urlP
 
 data ListOptions = ListOptions
   {}
@@ -110,24 +96,9 @@ listCommand :: Parser Command
 listCommand = pure (List ListOptions)
 
 data AddOptions = AddOptions
-  { path :: Text
+  { url :: SourceUrl
   }
   deriving (Show)
 
 addCommand :: Parser Command
-addCommand = Add . AddOptions <$> argument str (metavar "PATH")
-
-commandP :: Parser Command
-commandP =
-  hsubparser $
-    mconcat
-      [ command "add" (info addCommand $ progDesc "Add a flake tempalate url")
-      , command "list" (info listCommand $ progDesc "List templates")
-      , command "remove" (info removeCommand $ progDesc "Remove flake template url")
-      , command "update" (info updateCommand $ progDesc "Update flake template url")
-      , command "init" (info initCommand $ progDesc "Init flake template")
-      , command "new" (info newCommand $ progDesc "New flake template")
-      ]
-
-flakeitP :: ParserInfo Command
-flakeitP = info (helper <*> commandP) (progDesc "Flake It Program")
+addCommand = Add . AddOptions <$> urlP

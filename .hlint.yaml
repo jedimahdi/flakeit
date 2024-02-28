@@ -4,6 +4,7 @@
   - "-XGeneralizedNewtypeDeriving"
   - "-XLambdaCase"
   - "-XOverloadedStrings"
+  - "-XOverloadedRecordDot"
   - "-XRecordWildCards"
   - "-XScopedTypeVariables"
   - "-XStandaloneDeriving"
