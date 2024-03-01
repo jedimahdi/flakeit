@@ -1,9 +1,7 @@
 module FlakeIt.Cli.Parser where
 
-import Data.List qualified as List
 import Data.Version (Version, showVersion)
 import FlakeIt.DB qualified as DB
-import FlakeIt.Nix qualified as Nix
 import FlakeIt.Template
 import Options.Applicative
 
@@ -30,18 +28,16 @@ commandP =
       ]
 
 templateCompleter :: Completer
-templateCompleter = mkCompleter comp
+templateCompleter = listIOCompleter completions
  where
-  comp :: String -> IO [String]
-  comp s = do
-    map templateToString . concatMap listTemplates <$> DB.getAll
+  completions :: IO [String]
+  completions = map templateToString . concatMap listTemplates <$> DB.getAll
 
 urlCompleter :: Completer
-urlCompleter = mkCompleter comp
+urlCompleter = listIOCompleter completions
  where
-  comp :: String -> IO [String]
-  comp s =
-    filter (\t -> s `List.isPrefixOf` t) . map (urlToString . (\l -> l.url)) <$> DB.getAll
+  completions :: IO [String]
+  completions = map (urlToString . (\s -> s.url)) <$> DB.getAll
 
 versionP :: Version -> Parser (a -> a)
 versionP version =
@@ -81,7 +77,7 @@ initCommand :: Parser Command
 initCommand = Init . InitOptions <$> templateP
 
 data RemoveOptions = RemoveOptions
-  { url :: SourceUrl
+  { url :: !SourceUrl
   }
   deriving (Show)
 

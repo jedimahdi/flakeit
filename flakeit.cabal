@@ -1,16 +1,25 @@
-cabal-version: 3.0
-name:          flakeit
-version:       0.1.0.0
-license:       MIT
-license-file:  LICENSE
-author:        Mahdi Seyedan
-maintainer:    mahdi.se@yahoo.com
-build-type:    Simple
+cabal-version:   3.0
+name:            flakeit
+version:         0.1.0
+synopsis:        Make it easier to work with Nix flake templates
+description:     Make it easier to work with Nix flake templates
+homepage:        https://github.com/jedimahdi/flakeit#readme
+bug-reports:     https://github.com/jedimahdi/flakeit/issues
+license:         MIT
+license-file:    LICENSE
+category:        CLI, Development
+author:          Mahdi Seyedan
+maintainer:      mahdi.se@yahoo.com
+build-type:      Simple
+extra-doc-files: README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/jedimahdi/flakeit.git
 
 common common-options
   ghc-options:
-    -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates
-    -Wno-unused-local-binds -Wno-unused-imports -Wno-unused-matches
+    -Wall -Wcompat -Wunused-packages -Wredundant-constraints
 
   build-depends:      base
   default-language:   GHC2021
@@ -36,7 +45,6 @@ library
   build-depends:
     , aeson
     , binary
-    , bytestring
     , containers
     , directory
     , filepath

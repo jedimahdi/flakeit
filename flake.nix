@@ -22,10 +22,8 @@
     utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        haskellPackages = pkgs.haskellPackages.extend (final: prev: {
-          flakeit = prev.callCabal2nix "flakeit" ./. { };
-        });
-        flakeit = pkgs.lib.pipe haskellPackages.flakeit [
+        inherit (pkgs) haskellPackages;
+        flakeit = pkgs.lib.pipe (haskellPackages.callCabal2nix "flakeit" ./. { }) [
           pkgs.haskell.lib.justStaticExecutables
           pkgs.haskell.lib.dontCheck
           pkgs.haskell.lib.dontHaddock
@@ -55,11 +53,16 @@
         };
         devShells.default =
           haskellPackages.shellFor {
-            packages = p: [ p.flakeit ];
+            packages = p: [ flakeit ];
             inherit (preCommit) shellHook;
             withHoogle = true;
-            nativeBuildInputs = [ treefmtEval.config.build.wrapper pkgs.ghcid pkgs.just ]
-              ++ (pkgs.lib.attrValues treefmtEval.config.build.programs);
+            nativeBuildInputs = [
+              treefmtEval.config.build.wrapper
+              haskellPackages.haskell-language-server
+              haskellPackages.ghcid
+              haskellPackages.cabal-install
+            ]
+            ++ (pkgs.lib.attrValues treefmtEval.config.build.programs);
           };
       });
 }

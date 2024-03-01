@@ -6,11 +6,9 @@ import Data.Aeson qualified as JSON
 import Data.Aeson.Types (FromJSON, Value)
 import Data.Map (Map)
 import Data.Map.Strict qualified as Map
-import Data.Text (Text)
-import Data.Text qualified as Text
 import FlakeIt.Template
 import GHC.Generics (Generic)
-import System.Process.Typed (proc, readProcessStdout_, runProcess, runProcess_)
+import System.Process.Typed (proc, readProcessStdout_, runProcess_)
 
 data Flake = Flake
   { templates :: Maybe (Map TemplateName Value)

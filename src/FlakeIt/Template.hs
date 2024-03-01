@@ -2,7 +2,7 @@
 
 module FlakeIt.Template where
 
-import Data.Aeson (FromJSON, FromJSONKey)
+import Data.Aeson (FromJSONKey)
 import Data.Binary (Binary)
 import Data.String (IsString (..))
 import Data.Text (Text)

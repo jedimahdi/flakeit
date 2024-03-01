@@ -7,8 +7,6 @@ module FlakeIt.DB (
 
 import Control.Monad (when)
 import Data.Binary
-import Data.List qualified as List
-import FlakeIt.Nix qualified as Nix
 import FlakeIt.Template
 import System.Directory (
   XdgDirectory (XdgData),
